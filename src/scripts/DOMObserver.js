@@ -57,7 +57,7 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
 
         // 1. 若文字為系統 Action 關鍵字，豁免判斷（確保 Accept all 與 Run 不會被誤判為對話清單項目）
         var text = (el.textContent || '').trim().toLowerCase();
-        if (text === 'accept' || text === 'accept all' || text === 'run' || text === 'always allow' || text === 'allow' || text === 'retry' || text === 'continue') {
+        if (text === 'accept' || text === 'accept all' || text === 'run' || text === 'always allow' || text === 'allow' || text === 'retry' || text === 'continue' || text === 'submit' || text === '確認' || text === '送出') {
             return false;
         }
 
