@@ -349,16 +349,24 @@ class ConnectionManager {
         if (!this.isRunning || this.isConnecting) return;
         this.isConnecting = true;
         try {
-            const port = await this._findActivePort();
-            if (!port) { this._scheduleReconnect(); return; }
-            const targets = await this._getTargetList(port);
-            if (!targets || targets.length === 0) { this.log('[CDP] No targets found'); this._scheduleReconnect(); return; }
+            const ports = await this._findActivePorts();
+            if (ports.length === 0) { this._scheduleReconnect(); return; }
+            this.activeCdpPorts = ports;
 
             this._connected = true;
             if (this.onStatusChange) this.onStatusChange();
 
-            const candidates = targets.filter(t => this._isCandidate(t));
-            this.log(`[CDP] Found ${targets.length} targets, ${candidates.length} candidates`);
+            let allTargets = [];
+            for (const port of ports) {
+                const targets = await this._getTargetList(port);
+                if (targets) {
+                    allTargets.push(...targets);
+                }
+            }
+            if (allTargets.length === 0) { this.log('[CDP] No targets found'); this._scheduleReconnect(); return; }
+
+            const candidates = allTargets.filter(t => this._isCandidate(t));
+            this.log(`[CDP] Found ${allTargets.length} targets across ports [${ports.join(', ')}], ${candidates.length} candidates`);
 
             this._getScript();
             for (let i = 0; i < candidates.length; i += 5) {
@@ -547,12 +555,20 @@ class ConnectionManager {
         if (this._heartbeatRunning) return;
         this._heartbeatRunning = true;
         try {
-            const port = this.activeCdpPort;
-            if (!port) { this._heartbeatRunning = false; return; }
-            const targets = await this._getTargetList(port);
-            if (!targets) { this._heartbeatRunning = false; return; }
+            const ports = await this._findActivePorts();
+            if (ports.length === 0) { this._heartbeatRunning = false; return; }
+            this.activeCdpPorts = ports;
 
-            const candidates = targets.filter(t => this._isCandidate(t) && !this.sessions.has(t.id) && !this.ignoredTargets.has(t.id));
+            let allTargets = [];
+            for (const port of ports) {
+                const targets = await this._getTargetList(port);
+                if (targets) {
+                    allTargets.push(...targets);
+                }
+            }
+            if (allTargets.length === 0) { this._heartbeatRunning = false; return; }
+
+            const candidates = allTargets.filter(t => this._isCandidate(t) && !this.sessions.has(t.id) && !this.ignoredTargets.has(t.id));
             if (candidates.length > 0) {
                 this.log(`[CDP] Heartbeat found ${candidates.length} new targets: ${candidates.map(c => c.title || c.id.substring(0,6)).join(', ')}`);
                 for (let i = 0; i < candidates.length; i += 5) {
@@ -694,11 +710,18 @@ class ConnectionManager {
         });
     }
 
-    async _findActivePort() {
-        if (this.activeCdpPort && await this._pingPort(this.activeCdpPort)) return this.activeCdpPort;
+    async _findActivePorts() {
+        const portsToTry = new Set([9333, 9222]);
         const configPort = this.getPort();
-        if (await this._pingPort(configPort)) { this.activeCdpPort = configPort; return configPort; }
-        return null;
+        if (configPort) portsToTry.add(configPort);
+
+        const activePorts = [];
+        for (const port of portsToTry) {
+            if (await this._pingPort(port)) {
+                activePorts.push(port);
+            }
+        }
+        return activePorts;
     }
 
     async injectSwarmObserver(configString, targetId) {
