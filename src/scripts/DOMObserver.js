@@ -54,11 +54,6 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
     // a scrollable container with 3+ similar siblings. Action buttons are standalone.
     function isConversationListItem(el) {
         if (!el || !el.parentElement) return false;
-        var classes = el.className || '';
-        // Fast path: check for Antigravity's known conversation item class pattern
-        if (typeof classes === 'string' && classes.indexOf('select-none') !== -1 && classes.indexOf('cursor-pointer') !== -1 && classes.indexOf('rounded') !== -1) {
-            return true;
-        }
         // ⚡ PAST CHATS PANEL GUARD: Walk up 6 levels (deeper than before) to catch
         // history overlay panels. Threshold stays at 3+ to avoid blocking Run buttons
         // inside the chat message list (which is also scrollable with 2+ children).
@@ -140,6 +135,18 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
                 return null; // Hit a list container — this node is NOT an action button
             }
             var tag = (el.tagName || '').toLowerCase();
+            
+            // ⚡ BYPASS SCROLLABLE CONTAINERS: If the element is a scrollable container (e.g. having tabindex="0" for keyboard access),
+            // it is NOT an action button. Skip it and continue walking up.
+            var isScrollable = false;
+            try {
+                var style = window.getComputedStyle(el);
+                isScrollable = style.overflowY === 'auto' || style.overflowY === 'scroll' || style.overflow === 'auto' || style.overflow === 'scroll';
+            } catch(e) {}
+            if (isScrollable) {
+                el = el.parentElement;
+                continue;
+            }
             if (tag === 'button' || tag === 'a' || tag.includes('button') || tag.includes('btn') ||
                 el.getAttribute('role') === 'button' || el.getAttribute('role') === 'link' ||
                 el.classList.contains('cursor-pointer') ||
