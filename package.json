@@ -129,6 +129,7 @@
     "restore": "node scripts/restore.js",
     "package": "npx -y @vscode/vsce package",
     "package-prod": "node scripts/build-prod.js",
+    "package-daemon": "npx -y pkg daemon.js --targets node18-win-x64 --output bin/auto_accept.exe",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
