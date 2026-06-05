@@ -8,4 +8,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# 測試版本 3.27.29-fix-click5 自動點擊測試進行中！
+# 測試版本 3.27.29-fix-click6 自動點擊測試進行中！
