@@ -1,4 +1,4 @@
-const http = require('http');
+﻿const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -400,7 +400,10 @@ class ConnectionManager {
         const type = targetInfo.type; const url = targetInfo.url || '';
         if (!url) return false;
         if (type === 'service_worker' || type === 'worker' || type === 'shared_worker') return false;
-        if (url.startsWith('http://') || url.startsWith('https://') || url === 'about:blank') return false;
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            const isLocal = url.includes('127.0.0.1') || url.includes('localhost');
+            if (!isLocal) return false;
+        }
         return type === 'page' || type === 'iframe' || url.includes('vscode-webview') || url.includes('webview');
     }
 
