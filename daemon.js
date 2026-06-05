@@ -1,5 +1,6 @@
-// daemon.js (UTF-8 BOM)
+﻿// daemon.js (UTF-8 BOM)
 const { ConnectionManager } = require('./src/cdp/ConnectionManager');
+const WebSocket = require('ws'); // ⚡ 強迫 pkg 打包 WebSocket 模組
 const fs = require('fs');
 const path = require('path');
 
@@ -8,7 +9,8 @@ function getCustomTexts() {
     try {
         const settingsPath = path.join(process.env.APPDATA, 'Antigravity IDE', 'User', 'settings.json');
         if (fs.existsSync(settingsPath)) {
-            const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            const raw = fs.readFileSync(settingsPath, 'utf8').replace(/^\uFEFF/, '');
+            const settings = JSON.parse(raw);
             return settings['autoAcceptV2.customButtonTexts'] || [];
         }
     } catch (e) {
