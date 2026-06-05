@@ -1,4 +1,4 @@
-﻿// AntiGravity AutoAccept — DOM Observer Payload (v3.5.9)
+// AntiGravity AutoAccept — DOM Observer Payload (v3.5.9)
 
 function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, autoAcceptFileEdits, autoRetryEnabled) {
     blockedCommands = blockedCommands || [];
@@ -54,6 +54,19 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
     // a scrollable container with 3+ similar siblings. Action buttons are standalone.
     function isConversationListItem(el) {
         if (!el || !el.parentElement) return false;
+
+        // 1. 若文字為系統 Action 關鍵字，豁免判斷（確保 Accept all 與 Run 不會被誤判為對話清單項目）
+        var text = (el.textContent || '').trim().toLowerCase();
+        if (text === 'accept' || text === 'accept all' || text === 'run' || text === 'always allow' || text === 'allow' || text === 'retry' || text === 'continue') {
+            return false;
+        }
+
+        // 2. 還原 Fast path 防護：檢查 AntiGravity 已知的對話清單項目 class 特徵，避免誤點擊導致 IDE 關閉
+        var classes = el.className || '';
+        if (typeof classes === 'string' && classes.indexOf('select-none') !== -1 && classes.indexOf('cursor-pointer') !== -1 && classes.indexOf('rounded') !== -1) {
+            return true;
+        }
+
         // ⚡ PAST CHATS PANEL GUARD: Walk up 6 levels (deeper than before) to catch
         // history overlay panels. Threshold stays at 3+ to avoid blocking Run buttons
         // inside the chat message list (which is also scrollable with 2+ children).
