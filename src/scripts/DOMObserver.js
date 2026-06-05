@@ -407,16 +407,31 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
                 try {
                     var events = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
                     for (var i = 0; i < events.length; i++) {
-                        var ev = new MouseEvent(events[i], {
-                            bubbles: true,
-                            cancelable: true,
-                            view: window,
-                            buttons: 1
-                        });
+                        var type = events[i];
+                        var ev;
+                        if (typeof window.PointerEvent === 'function' && type.indexOf('pointer') !== -1) {
+                            ev = new PointerEvent(type, {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window,
+                                buttons: 1,
+                                pointerId: 1,
+                                pointerType: 'mouse',
+                                isPrimary: true
+                            });
+                        } else {
+                            ev = new MouseEvent(type, {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window,
+                                buttons: 1
+                            });
+                        }
                         el.dispatchEvent(ev);
                     }
+                    if (typeof el.click === 'function') el.click();
                 } catch (e) {
-                    el.click();
+                    if (typeof el.click === 'function') el.click();
                 }
             })(btn);
             window.__AA_CLICK_COUNT = (window.__AA_CLICK_COUNT || 0) + 1;
