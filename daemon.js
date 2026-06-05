@@ -1,4 +1,3 @@
-# -*- coding: utf-8-bom -*-
 // daemon.js (UTF-8 BOM)
 const { ConnectionManager } = require('./src/cdp/ConnectionManager');
 const fs = require('fs');
