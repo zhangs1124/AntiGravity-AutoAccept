@@ -1,4 +1,4 @@
-// AntiGravity AutoAccept — DOM Observer Payload (v3.5.9)
+﻿// AntiGravity AutoAccept — DOM Observer Payload (v3.5.9)
 
 function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, autoAcceptFileEdits, autoRetryEnabled) {
     blockedCommands = blockedCommands || [];
@@ -6,12 +6,14 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
     if (autoAcceptFileEdits === undefined) autoAcceptFileEdits = true;
     if (autoRetryEnabled === undefined) autoRetryEnabled = true;
 
+    const lowerCustomTexts = (customTexts || []).map(t => t.toLowerCase());
+
     const allTexts = [
         'run',  
         ...(autoAcceptFileEdits ? ['accept'] : []),  
         'always allow', 'allow this conversation', 'allow',
         ...(autoRetryEnabled ? ['retry', 'continue'] : []),  
-        ...customTexts
+        ...lowerCustomTexts
     ];
     const expandTexts = ['requires input', 'expand'];
 
