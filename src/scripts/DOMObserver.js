@@ -403,7 +403,22 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
             if (window.__AA_CLICK_LOG.length > 10) window.__AA_CLICK_LOG.shift();
             
             _log('clicking:', matchedText, 'tag:', (btn.tagName || ''), 'path:', _domPath(btn));
-            btn.click();
+            (function(el) {
+                try {
+                    var events = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
+                    for (var i = 0; i < events.length; i++) {
+                        var ev = new MouseEvent(events[i], {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window,
+                            buttons: 1
+                        });
+                        el.dispatchEvent(ev);
+                    }
+                } catch (e) {
+                    el.click();
+                }
+            })(btn);
             window.__AA_CLICK_COUNT = (window.__AA_CLICK_COUNT || 0) + 1;
             return 'clicked:' + matchedText;
         }
