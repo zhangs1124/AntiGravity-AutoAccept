@@ -281,7 +281,8 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
                     var lastClick = clickCooldowns[btnKey] || 0;
                     if (lastClick && (Date.now() - lastClick < cooldown)) continue;
                     
-                    best = { node: clickable, matchedText: text, priority: t };
+                    var targetNode = wNode.nodeType === Node.TEXT_NODE ? wNode.parentElement : wNode;
+                    best = { node: clickable, targetNode: targetNode, matchedText: text, priority: t };
                     if (t === 0) return best; 
                     break; 
                 }
@@ -361,7 +362,7 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
             var match = findButton(document.body, allTexts);
             if (!match) return null;
 
-            var btn = match.node; var matchedText = match.matchedText;
+            var btn = match.node; var targetNode = match.targetNode || btn; var matchedText = match.matchedText;
             var isExpandBtn = (matchedText === 'expand' || matchedText === 'requires input');
 
             // ⚡ SWARM PAUSE GUARD: "allow" clicks in Manager webview cause ghost navigation.
@@ -403,29 +404,20 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
             if (window.__AA_CLICK_LOG.length > 10) window.__AA_CLICK_LOG.shift();
             
             _log('clicking:', matchedText, 'tag:', (btn.tagName || ''), 'path:', _domPath(btn));
-            (function(el) {
+            (function(el, innerEl) {
                 try {
                     var events = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
                     for (var i = 0; i < events.length; i++) {
                         var type = events[i];
                         var ev;
+                        var opts = { bubbles: true, cancelable: true, view: window, buttons: 1 };
                         if (typeof window.PointerEvent === 'function' && type.indexOf('pointer') !== -1) {
-                            ev = new PointerEvent(type, {
-                                bubbles: true,
-                                cancelable: true,
-                                view: window,
-                                buttons: 1,
-                                pointerId: 1,
-                                pointerType: 'mouse',
-                                isPrimary: true
-                            });
+                            ev = new PointerEvent(type, Object.assign(opts, { pointerId: 1, pointerType: 'mouse', isPrimary: true }));
                         } else {
-                            ev = new MouseEvent(type, {
-                                bubbles: true,
-                                cancelable: true,
-                                view: window,
-                                buttons: 1
-                            });
+                            ev = new MouseEvent(type, opts);
+                        }
+                        if (innerEl && innerEl !== el) {
+                            innerEl.dispatchEvent(ev);
                         }
                         el.dispatchEvent(ev);
                     }
@@ -433,7 +425,7 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
                 } catch (e) {
                     if (typeof el.click === 'function') el.click();
                 }
-            })(btn);
+            })(btn, targetNode);
             window.__AA_CLICK_COUNT = (window.__AA_CLICK_COUNT || 0) + 1;
             return 'clicked:' + matchedText;
         }
