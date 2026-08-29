@@ -1,4 +1,4 @@
-﻿// daemon.js (UTF-8 BOM)
+// daemon.js (UTF-8 BOM)
 const { ConnectionManager } = require('./src/cdp/ConnectionManager');
 const WebSocket = require('ws'); // ⚡ 強迫 pkg 打包 WebSocket 模組
 const fs = require('fs');
@@ -29,7 +29,7 @@ const manager = new ConnectionManager({
     getLastUserActivity: () => Date.now() - 60000 // 假設目前無用戶活動衝突，讓背景可隨時點擊
 });
 
-console.log('🚀 AutoAccept 獨立背景服務啟動中 (同時監控 IDE: 9333 與 2.0: 9222)...');
+console.log('🚀 AutoAccept 獨立背景服務啟動中 (同時監控 IDE 範圍: 9333-9340 與 2.0: 9222)...');
 manager.start();
 
 // 監聽結束信號
