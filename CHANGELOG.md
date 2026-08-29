@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.27.30-ports-scan] — 2026-08-29
+
+### Multi-Port Scanning & Conflict Resolution
+- **Added** automatic scanning for port range `9333` to `9340` (in addition to `9222` and user-configured ports). This allows running multiple instances of VS Code/Antigravity simultaneously on different debugging ports without port collision, while still allowing the auto-accept tool to connect to and handle all active windows.
+
+---
+
 ## [3.13.8] — 2026-03-31
 
 ### Safety Presets & Bulk Blocked Commands

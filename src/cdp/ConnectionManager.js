@@ -1,4 +1,4 @@
-﻿const http = require('http');
+const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -714,7 +714,10 @@ class ConnectionManager {
     }
 
     async _findActivePorts() {
-        const portsToTry = new Set([9333, 9222]);
+        const portsToTry = new Set([9222]);
+        for (let p = 9333; p <= 9340; p++) {
+            portsToTry.add(p);
+        }
         const configPort = this.getPort();
         if (configPort) portsToTry.add(configPort);
 
