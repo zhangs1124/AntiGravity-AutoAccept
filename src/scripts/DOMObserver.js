@@ -10,7 +10,7 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
 
     const allTexts = [
         'run',  
-        ...(autoAcceptFileEdits ? ['accept'] : []),  
+        ...(autoAcceptFileEdits ? ['accept', 'review'] : []),  
         'yes, and always allow', 'always allow', 'allow this conversation', 'allow this time', 'allow',
         'proceed', 'confirm', 'submit',
         '同意', '確認', '送出',
@@ -37,7 +37,7 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
     // "Run" buttons inside the chat content area.
     // Strategy: If the matched text is short (≤8 chars), verify the clickable element is NOT
     // inside a sidebar list/tree container. Long unique phrases like "always allow" are safe.
-    var AMBIGUOUS_TEXTS = { 'run': true, 'accept': true, 'allow': true, 'retry': true, 'continue': true };
+    var AMBIGUOUS_TEXTS = { 'run': true, 'accept': true, 'allow': true, 'retry': true, 'continue': true, 'review': true, 'confirm': true };
     var SIDEBAR_SELECTORS = '[role="tree"], [role="treeitem"], [role="listbox"], [role="option"], .monaco-list, .conversation-list, .chat-list, .sidebar-list, [data-testid*="convo"], [data-testid*="trajectory"], [class*="conversation-list"], [class*="trajectory"], [class*="history"], [class*="past-chat"], [class*="chat-history"]';
     // ⚡ LIST CONTAINER SELECTORS: Scrollable containers that hold conversation history items.
     // These are parents of clickable list items — NOT action buttons.
@@ -59,7 +59,7 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
 
         // 1. 若文字為系統 Action 關鍵字，豁免判斷（確保 Accept all 與 Run 不會被誤判為對話清單項目）
         var text = (el.textContent || '').trim().toLowerCase();
-        if (text === 'accept' || text === 'accept all' || text === 'run' || text === 'always allow' || text === 'allow' || text === 'retry' || text === 'continue' || text === 'submit' || text === '確認' || text === '送出' || text.includes('always allow') || text.includes('allow this time') || text === 'proceed' || text === 'confirm' || text === '同意') {
+        if (text === 'accept' || text === 'accept all' || text === 'run' || text === 'always allow' || text === 'allow' || text === 'retry' || text === 'continue' || text === 'submit' || text === 'review' || text === 'confirm' || text === 'proceed' || text === '同意' || text === '確認' || text === '送出' || text.includes('always allow') || text.includes('allow this time')) {
             return false;
         }
 

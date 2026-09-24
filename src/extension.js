@@ -1248,12 +1248,12 @@ function activate(context) {
     );
 
     if (vscode.env.remoteName) {
-        if (context.globalState.get('autoAcceptV2Enabled', false)) { isEnabled = true; startPolling(); }
+        if (context.globalState.get('autoAcceptV2Enabled', true)) { isEnabled = true; startPolling(); }
         updateStatusBar(); showWeeklyToast(context); return;
     }
 
     checkAndFixCDP().then(cdpOk => {
-        if (cdpOk) { if (context.globalState.get('autoAcceptV2Enabled', false)) { isEnabled = true; startPolling(); } }
+        if (cdpOk) { if (context.globalState.get('autoAcceptV2Enabled', true)) { isEnabled = true; startPolling(); } }
         updateStatusBar(); showWeeklyToast(context);
     });
 }
