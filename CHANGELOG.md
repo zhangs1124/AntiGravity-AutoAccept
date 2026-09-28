@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.27.31-ag2-support] — 2026-09-28
+
+### Antigravity 2.0 Interactive Question & Permission Modal Support
+- **Added** support for Antigravity 2.0 interactive question / permission forms: auto-selects options like `Yes, and always allow` or `Yes, allow this time` (even with numbered prefixes like `1`, `2`, `4`), and automatically clicks the `Submit↵` button.
+- **Added** recognition of `<label>` and `role="radio"` elements in `closestClickable`.
+- **Added** expanded action keywords: `yes, and always allow`, `allow this time`, `proceed`, `confirm`, `submit`, `同意`, `確認`, `送出`.
+
+---
+
 ## [3.27.30-ports-scan] — 2026-08-29
 
 ### Multi-Port Scanning & Conflict Resolution

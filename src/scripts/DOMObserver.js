@@ -11,7 +11,9 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
     const allTexts = [
         'run',  
         ...(autoAcceptFileEdits ? ['accept'] : []),  
-        'always allow', 'allow this conversation', 'allow',
+        'yes, and always allow', 'always allow', 'allow this conversation', 'allow this time', 'allow',
+        'proceed', 'confirm', 'submit',
+        '同意', '確認', '送出',
         ...(autoRetryEnabled ? ['retry', 'continue'] : []),  
         ...lowerCustomTexts
     ];
@@ -57,7 +59,7 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
 
         // 1. 若文字為系統 Action 關鍵字，豁免判斷（確保 Accept all 與 Run 不會被誤判為對話清單項目）
         var text = (el.textContent || '').trim().toLowerCase();
-        if (text === 'accept' || text === 'accept all' || text === 'run' || text === 'always allow' || text === 'allow' || text === 'retry' || text === 'continue' || text === 'submit' || text === '確認' || text === '送出') {
+        if (text === 'accept' || text === 'accept all' || text === 'run' || text === 'always allow' || text === 'allow' || text === 'retry' || text === 'continue' || text === 'submit' || text === '確認' || text === '送出' || text.includes('always allow') || text.includes('allow this time') || text === 'proceed' || text === 'confirm' || text === '同意') {
             return false;
         }
 
@@ -160,14 +162,13 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
                 el = el.parentElement;
                 continue;
             }
-            if (tag === 'button' || tag === 'a' || tag.includes('button') || tag.includes('btn') ||
-                el.getAttribute('role') === 'button' || el.getAttribute('role') === 'link' ||
+            if (tag === 'button' || tag === 'a' || tag === 'label' || tag.includes('button') || tag.includes('btn') ||
+                el.getAttribute('role') === 'button' || el.getAttribute('role') === 'link' || el.getAttribute('role') === 'radio' || el.getAttribute('role') === 'checkbox' ||
                 el.classList.contains('cursor-pointer') ||
                 el.onclick || el.getAttribute('tabindex') === '0') {
                 // ⚡ FINAL CHECK: Reject if it's a conversation list item.
-                // EXCEPTION: Real semantic <button> and <a> elements are ALWAYS valid click
-                // targets — conversation history items are divs/spans, never button tags.
-                var isSemanticTag = (tag === 'button' || tag === 'a');
+                // EXCEPTION: Real semantic <button>, <a>, and <label> elements are ALWAYS valid click targets.
+                var isSemanticTag = (tag === 'button' || tag === 'a' || tag === 'label');
                 if (!isSemanticTag && isConversationListItem(el)) return null;
                 return el;
             }
@@ -237,9 +238,13 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
                         isMatch = nodeText.indexOf('requires input') !== -1 && nodeText.length <= 80;
                     }
                 } else {
-                    isMatch = nodeText === text ||
+                    var cleanNodeText = nodeText.replace(/^[0-9]+[.)\s]*/, '');
+                    isMatch = nodeText === text || cleanNodeText === text ||
                         (text.length >= 3 && nodeText.startsWith(text) && isWordBoundary(nodeText, text.length) && nodeText.length <= text.length * 3) ||
+                        (text.length >= 3 && cleanNodeText.startsWith(text) && isWordBoundary(cleanNodeText, text.length) && cleanNodeText.length <= text.length * 3) ||
                         (nodeText.startsWith(text + ' ') && nodeText.length <= text.length * 5) ||
+                        (cleanNodeText.startsWith(text + ' ') && cleanNodeText.length <= text.length * 5) ||
+                        ((text === 'always allow' || text === 'allow this time' || text === 'yes, and always allow') && (nodeText.includes(text) || cleanNodeText.includes(text))) ||
                         (text.length >= 3 && nodeText.startsWith(text) && nodeText.length <= text.length * 5 &&
                             /^(alt|ctrl|shift|cmd|meta|\u2318|\u2325|\u21E7|\u2303)/.test(nodeText.substring(text.length)));
                 }
@@ -364,6 +369,53 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
         return true;
     }
 
+    function handleInteractiveQuestion() {
+        // Antigravity 2.0 Ask Question / Modal Handler
+        var buttons = Array.from(document.querySelectorAll('button'));
+        var submitBtn = buttons.find(function(b) {
+            var txt = (b.textContent || '').trim().toLowerCase();
+            return (txt.startsWith('submit') || txt.startsWith('送出') || txt.startsWith('確認')) && (b.offsetParent !== null || b.offsetWidth > 0 || b.offsetHeight > 0);
+        });
+        if (!submitBtn || submitBtn.disabled || submitBtn.getAttribute('aria-disabled') === 'true') return false;
+
+        var container = submitBtn.closest('form') || submitBtn.closest('[role="dialog"]') || (submitBtn.parentElement ? submitBtn.parentElement.parentElement : null) || document.body;
+        var labels = Array.from(container.querySelectorAll('label, [role="radio"], [role="checkbox"]')).filter(function(l) {
+            return (l.offsetParent !== null || l.offsetWidth > 0 || l.offsetHeight > 0);
+        });
+
+        if (labels.length > 0) {
+            var bestLabel = labels.find(function(l) {
+                var t = (l.textContent || '').toLowerCase();
+                return t.includes('always allow');
+            }) || labels.find(function(l) {
+                var t = (l.textContent || '').toLowerCase();
+                return t.includes('allow this time') || t.includes('allow');
+            }) || labels.find(function(l) {
+                var t = (l.textContent || '').toLowerCase();
+                return t.includes('yes') || t.includes('同意') || t.includes('允許');
+            }) || labels[0];
+
+            if (bestLabel) {
+                var qKey = 'modal_submit:' + (bestLabel.textContent || '').trim().substring(0, 30);
+                if (clickCooldowns[qKey] && Date.now() - clickCooldowns[qKey] < COOLDOWN_MS) return false;
+                clickCooldowns[qKey] = Date.now();
+
+                _log('Antigravity 2.0 Question detected, selecting:', (bestLabel.textContent || '').trim());
+                try { bestLabel.click(); } catch(e) {}
+                var innerInput = bestLabel.querySelector('input');
+                if (innerInput && !innerInput.checked) {
+                    try { innerInput.click(); } catch(e2) {}
+                }
+                setTimeout(function() {
+                    try { submitBtn.click(); } catch(e3) {}
+                }, 100);
+                window.__AA_CLICK_COUNT = (window.__AA_CLICK_COUNT || 0) + 1;
+                return true;
+            }
+        }
+        return false;
+    }
+
     function scanAndClick() {
         window.__AA_LAST_SCAN = Date.now(); 
         window.__AA_SKIP_COUNT = 0; 
@@ -371,6 +423,10 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
         pruneCooldowns();
 
         if (!isAgentPanel()) return null;
+
+        if (handleInteractiveQuestion()) {
+            return 'clicked:interactive_question';
+        }
 
         if (!window.__AA_EXPAND_DIAG_TS || Date.now() - window.__AA_EXPAND_DIAG_TS > 10000) { window.__AA_EXPAND_DIAG_TS = Date.now(); }
 
