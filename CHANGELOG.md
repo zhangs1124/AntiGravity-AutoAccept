@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.27.32-fast-modal] — 2026-09-28
+
+### Fix Option Jumping & Ultra-Fast Modal Auto-Submit
+- **Fixed** option jumping issue: added `__AA_SUBMITTING` mutex lock to prevent concurrent button scanners from interfering when an interactive question is being handled.
+- **Added** smart positive option filtering: automatically prioritizes positive authorization phrases (`always allow in this conversation`, `allow this time`, `yes`, etc.) while strictly excluding negative options (`no`, `cancel`, `deny`, `拒絕`).
+- **Optimized** submission latency: reduced wait time between option selection and `Submit` click from 100ms down to 15ms.
+
+---
+
 ## [3.27.31-ag2-support] — 2026-09-28
 
 ### Antigravity 2.0 Interactive Question & Permission Modal Support

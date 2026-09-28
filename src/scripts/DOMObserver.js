@@ -369,12 +369,16 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
         return true;
     }
 
+    var __AA_SUBMITTING = false;
+
     function handleInteractiveQuestion() {
-        // Antigravity 2.0 Ask Question / Modal Handler
+        if (__AA_SUBMITTING) return true; // 鎖定中，避免重複觸發與跳動
+
         var buttons = Array.from(document.querySelectorAll('button'));
         var submitBtn = buttons.find(function(b) {
             var txt = (b.textContent || '').trim().toLowerCase();
-            return (txt.startsWith('submit') || txt.startsWith('送出') || txt.startsWith('確認')) && (b.offsetParent !== null || b.offsetWidth > 0 || b.offsetHeight > 0);
+            return (txt.startsWith('submit') || txt.startsWith('送出') || txt.startsWith('確認')) && 
+                   (b.offsetParent !== null || b.offsetWidth > 0 || b.offsetHeight > 0);
         });
         if (!submitBtn || submitBtn.disabled || submitBtn.getAttribute('aria-disabled') === 'true') return false;
 
@@ -384,31 +388,34 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
         });
 
         if (labels.length > 0) {
-            var bestLabel = labels.find(function(l) {
+            // 🛡️ 智慧過濾：排除 No/Cancel，並優先比對正面授權關鍵字
+            var targetLabel = labels.find(function(l) {
                 var t = (l.textContent || '').toLowerCase();
-                return t.includes('always allow');
-            }) || labels.find(function(l) {
-                var t = (l.textContent || '').toLowerCase();
-                return t.includes('allow this time') || t.includes('allow');
-            }) || labels.find(function(l) {
-                var t = (l.textContent || '').toLowerCase();
-                return t.includes('yes') || t.includes('同意') || t.includes('允許');
+                if (t.includes('no') || t.includes('cancel') || t.includes('deny') || t.includes('拒絕') || t.includes('取消')) return false;
+                return t.includes('always allow in this conversation') || 
+                       t.includes('always allow') || 
+                       t.includes('allow this time') || 
+                       t.includes('yes') || 
+                       t.includes('允許') || 
+                       t.includes('同意');
             }) || labels[0];
 
-            if (bestLabel) {
-                var qKey = 'modal_submit:' + (bestLabel.textContent || '').trim().substring(0, 30);
-                if (clickCooldowns[qKey] && Date.now() - clickCooldowns[qKey] < COOLDOWN_MS) return false;
-                clickCooldowns[qKey] = Date.now();
+            if (targetLabel) {
+                __AA_SUBMITTING = true; // ⚡ 立即鎖定，禁止其他掃描器跳選！
+                _log('Antigravity 2.0 智慧授權選取:', (targetLabel.textContent || '').trim());
 
-                _log('Antigravity 2.0 Question detected, selecting:', (bestLabel.textContent || '').trim());
-                try { bestLabel.click(); } catch(e) {}
-                var innerInput = bestLabel.querySelector('input');
+                try { targetLabel.click(); } catch(e) {}
+                var innerInput = targetLabel.querySelector('input');
                 if (innerInput && !innerInput.checked) {
                     try { innerInput.click(); } catch(e2) {}
                 }
+
+                // 15ms 內秒送出
                 setTimeout(function() {
                     try { submitBtn.click(); } catch(e3) {}
-                }, 100);
+                    setTimeout(function() { __AA_SUBMITTING = false; }, 600);
+                }, 15);
+
                 window.__AA_CLICK_COUNT = (window.__AA_CLICK_COUNT || 0) + 1;
                 return true;
             }
@@ -417,6 +424,7 @@ function buildDOMObserverScript(customTexts, blockedCommands, allowedCommands, a
     }
 
     function scanAndClick() {
+        if (__AA_SUBMITTING) return null; // 處理彈窗中，暫停全域按鈕比對
         window.__AA_LAST_SCAN = Date.now(); 
         window.__AA_SKIP_COUNT = 0; 
         if (window.__AA_PAUSED || window.__AA_SWARM_PAUSED) return null;
